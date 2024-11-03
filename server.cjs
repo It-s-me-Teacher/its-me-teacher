@@ -1,6 +1,9 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 
 const app = express();
 const port = 3000;
@@ -28,6 +31,14 @@ db.serialize(() => {
     theme TEXT,
     skills TEXT
   )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE,
+    email TEXT,
+    password TEXT
+  )`);
+  
 });
 
 app.get('/api/students', (req, res) => {
@@ -125,6 +136,125 @@ app.delete('/api/classes/:id', (req, res) => {
     res.json({ message: 'Class deleted successfully' });
   });
 });
+
+app.post('/api/users/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  
+  db.get('SELECT name FROM users WHERE name = ?', [name], async (err, user) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (user) {
+      res.status(409).json({ error: 'Nome de usuário já existe' });
+      return;
+    }
+    
+    try {
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      
+      db.run('INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
+        [name, email, hashedPassword],
+        function(err) {
+          if (err) {
+            res.status(500).json({ error: err.message });
+            return;
+          }
+          res.json({ id: this.lastID });
+        }
+      );
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+
+app.post('/api/users/login', (req, res) => {
+  const { email, password } = req.body;
+  
+  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!user) {
+      res.status(404).json({ error: 'Usuario não encontrado' });
+      return;
+    }
+    
+    const match = await bcrypt.compare(password, user.password);
+    
+    if (match) {
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } else {
+      res.status(401).json({ error: 'Senha inválida' });
+    }
+  });
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  const { name, email, password } = req.body;
+  const userId = req.params.id;
+  
+  try {
+    let updates = [];
+    let values = [];
+    
+    if (name) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (email) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+    if (password) {
+      updates.push('password = ?');
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      values.push(hashedPassword);
+    }
+    
+    values.push(userId);
+    
+    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    
+    db.run(query, values, function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      
+      db.get('SELECT id, name, email FROM users WHERE id = ?', [userId], (err, user) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json(user);
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/users/:id', (req, res) => {
+  db.get('SELECT id, name, email FROM users WHERE id = ?', [req.params.id], (err, user) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    res.json(user);
+  });
+});
+
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);

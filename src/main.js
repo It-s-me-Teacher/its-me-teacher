@@ -4,11 +4,16 @@ import App from "./App.vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import ClassesTable from "./components/ClassesTable.vue";
 import StudentsTable from "./components/StudentsTable.vue";
+import SignUp from "./components/SignUp.vue";
 
 const routes = [
-  { path: "/classes", component: ClassesTable },
-  { path: "/", component: ClassesTable },
-  { path: "/students", component: StudentsTable },
+  { path: "/classes", component: ClassesTable,
+    meta: { requiresAuth: true } },
+  { path: "/", component: ClassesTable,
+    meta: { requiresAuth: true } },
+  { path: "/students", component: StudentsTable,
+    meta: { requiresAuth: true } },
+  { path:"/signup", component: SignUp},
 ];
 
 import { createWebHistory } from "vue-router";
@@ -17,6 +22,16 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = localStorage.getItem('user')
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next('/signup')
+  } else {
+    next()
+  }
+})
 
 import "vuetify/styles";
 import { createVuetify } from "vuetify";
