@@ -8,13 +8,13 @@
     :items-per-page="25"
   >
     <template v-slot:top>
-      <v-toolbar flat>
-        <v-toolbar-title>Classes</v-toolbar-title>
+      <v-toolbar class="bg-red-darken-1">
+        <v-toolbar-title class="text-h6 font-weight-bold">Classes</v-toolbar-title>
         <v-divider class="mx-4" inset vertical></v-divider>
         <v-spacer></v-spacer>
         <v-dialog v-model="dialog" max-width="500px">
           <template v-slot:activator="{ props }">
-            <v-btn class="mb-2" color="primary" dark v-bind="props">
+            <v-btn class="mb-2 font-weight-bold" color="white" dark v-bind="props">
               New Class
             </v-btn>
           </template>

@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import ClassesTable from "./components/ClassesTable.vue";
 import StudentsTable from "./components/StudentsTable.vue";
 import SignUp from "./components/SignUp.vue";
+import LoginPage from "./components/LoginPage.vue";
 
 const routes = [
   { path: "/classes", component: ClassesTable,
@@ -14,6 +15,7 @@ const routes = [
   { path: "/students", component: StudentsTable,
     meta: { requiresAuth: true } },
   { path:"/signup", component: SignUp},
+  { path:"/login", component: LoginPage},
 ];
 
 import { createWebHistory } from "vue-router";
@@ -27,7 +29,7 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('user')
   
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/signup')
+    next('/login')
   } else {
     next()
   }
